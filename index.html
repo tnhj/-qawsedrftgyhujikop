@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>数字逆唱ゲーム</title>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    width:90%;
+    max-width:700px;
+    background:#1b1b1b;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+h1{
+    text-align:center;
+    margin-top:0;
+}
+
+#number{
+    font-size:48px;
+    text-align:center;
+    margin:30px 0;
+    letter-spacing:10px;
+    min-height:70px;
+}
+
+button{
+    padding:12px 20px;
+    border:none;
+    border-radius:10px;
+    background:#4caf50;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+    margin:5px;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    font-size:20px;
+    border-radius:10px;
+    border:none;
+    margin-top:10px;
+    box-sizing:border-box;
+}
+
+.info{
+    margin-top:20px;
+    line-height:1.8;
+}
+
+.history{
+    margin-top:25px;
+    background:#222;
+    padding:15px;
+    border-radius:10px;
+}
+
+.correct{
+    color:#4caf50;
+}
+
+.wrong{
+    color:#ff5252;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>数字逆唱ゲーム</h1>
+
+<div id="number">STARTを押してください</div>
+
+<div style="text-align:center;">
+    <button onclick="startGame()">START</button>
+    <button onclick="showNumber()">数字表示</button>
+    <button onclick="checkAnswer()">回答する</button>
+</div>
+
+<input id="answer" type="text" placeholder="逆から入力">
+
+<div class="info">
+    <div>レベル: <span id="level">3</span></div>
+    <div>スコア: <span id="score">0</span></div>
+    <div>連続正解: <span id="combo">0</span></div>
+</div>
+
+<div class="history">
+    <h3>今日の記録</h3>
+    <div id="historyList"></div>
+</div>
+
+</div>
+
+<script>
+
+let currentNumber = "";
+let level = 3;
+let score = 0;
+let combo = 0;
+let hidden = false;
+
+const numberDiv = document.getElementById("number");
+
+function randomDigits(length){
+
+    let s = "";
+
+    for(let i=0;i<length;i++){
+        s += Math.floor(Math.random()*10);
+    }
+
+    return s;
+}
+
+function startGame(){
+
+    currentNumber = randomDigits(level);
+
+    numberDiv.textContent = currentNumber;
+
+    hidden = false;
+
+    document.getElementById("answer").value = "";
+
+}
+
+function showNumber(){
+
+    if(currentNumber==="") return;
+
+    if(!hidden){
+
+        numberDiv.textContent = "● ● ● ●";
+        hidden = true;
+
+    }else{
+
+        numberDiv.textContent = currentNumber;
+        hidden = false;
+    }
+
+}
+
+function checkAnswer(){
+
+    const ans = document.getElementById("answer").value.trim();
+
+    const reversed = currentNumber.split("").reverse().join("");
+
+    let result = "";
+
+    if(ans === reversed){
+
+        score += level * 10;
+        combo++;
+
+        if(combo % 2 === 0){
+            level++;
+        }
+
+        result = "⭕ 正解";
+
+        addHistory(true);
+
+    }else{
+
+        combo = 0;
+
+        if(level > 3){
+            level--;
+        }
+
+        result = `❌ 不正解 正解: ${reversed}`;
+
+        addHistory(false);
+
+    }
+
+    numberDiv.innerHTML = result;
+
+    updateUI();
+
+}
+
+function updateUI(){
+
+    document.getElementById("level").textContent = level;
+    document.getElementById("score").textContent = score;
+    document.getElementById("combo").textContent = combo;
+
+}
+
+function todayKey(){
+
+    const d = new Date();
+
+    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+
+}
+
+function addHistory(correct){
+
+    let data = JSON.parse(localStorage.getItem("reverseMemoryGame")) || {};
+
+    const key = todayKey();
+
+    if(!data[key]){
+
+        data[key] = {
+            plays:0,
+            correct:0,
+            score:0
+        };
+
+    }
+
+    data[key].plays++;
+
+    if(correct){
+        data[key].correct++;
+    }
+
+    data[key].score = score;
+
+    localStorage.setItem("reverseMemoryGame",JSON.stringify(data));
+
+    renderHistory();
+
+}
+
+function renderHistory(){
+
+    const historyDiv = document.getElementById("historyList");
+
+    let data = JSON.parse(localStorage.getItem("reverseMemoryGame")) || {};
+
+    let html = "";
+
+    const keys = Object.keys(data).reverse();
+
+    if(keys.length===0){
+
+        html = "まだ記録がありません";
+
+    }else{
+
+        keys.forEach(k=>{
+
+            const d = data[k];
+
+            html += `
+            <div style="margin-bottom:10px;">
+                <strong>${k}</strong><br>
+                プレイ: ${d.plays} 回<br>
+                正解: ${d.correct} 回<br>
+                スコア: ${d.score}
+            </div>
+            <hr>
+            `;
+
+        });
+
+    }
+
+    historyDiv.innerHTML = html;
+
+}
+
+renderHistory();
+
+</script>
+
+</body>
+</html>
