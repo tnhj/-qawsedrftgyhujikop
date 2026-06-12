@@ -1,297 +1,284 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>数字逆唱ゲーム</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WAIS風 記憶力テスト</title>
 
 <style>
 body{
-    margin:0;
-    background:#111;
-    color:white;
-    font-family:sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
+font-family:sans-serif;
+background:#111;
+color:white;
+max-width:800px;
+margin:auto;
+padding:20px;
 }
-
-.container{
-    width:90%;
-    max-width:700px;
-    background:#1b1b1b;
-    padding:30px;
-    border-radius:20px;
-    box-shadow:0 0 20px rgba(0,0,0,0.5);
+.card{
+background:#1e1e1e;
+padding:20px;
+border-radius:12px;
+margin-bottom:15px;
 }
-
-h1{
-    text-align:center;
-    margin-top:0;
-}
-
-#number{
-    font-size:48px;
-    text-align:center;
-    margin:30px 0;
-    letter-spacing:10px;
-    min-height:70px;
-}
-
 button{
-    padding:12px 20px;
-    border:none;
-    border-radius:10px;
-    background:#4caf50;
-    color:white;
-    font-size:16px;
-    cursor:pointer;
-    margin:5px;
+padding:10px 20px;
+font-size:16px;
+cursor:pointer;
 }
-
-button:hover{
-    opacity:0.9;
-}
-
 input{
-    width:100%;
-    padding:12px;
-    font-size:20px;
-    border-radius:10px;
-    border:none;
-    margin-top:10px;
-    box-sizing:border-box;
+width:100%;
+padding:10px;
+font-size:20px;
+margin-top:10px;
 }
-
-.info{
-    margin-top:20px;
-    line-height:1.8;
+#number{
+font-size:42px;
+text-align:center;
+letter-spacing:6px;
+min-height:60px;
 }
-
-.history{
-    margin-top:25px;
-    background:#222;
-    padding:15px;
-    border-radius:10px;
-}
-
-.correct{
-    color:#4caf50;
-}
-
-.wrong{
-    color:#ff5252;
-}
-
+.good{color:#4caf50}
+.bad{color:#ff5252}
 </style>
-</head>
 
+</head>
 <body>
 
-<div class="container">
+<h1>🧠 WAIS風 記憶力テスト</h1>
 
-<h1>数字逆唱ゲーム</h1>
+<div class="card">
+<div id="status">STARTを押してください</div>
+<div id="number"></div>
 
-<div id="number">STARTを押してください</div>
+<button onclick="startTest()">START</button>
 
-<div style="text-align:center;">
-    <button onclick="startGame()">START</button>
-    <button onclick="showNumber()">数字表示</button>
-    <button onclick="checkAnswer()">回答する</button>
+<div id="answerArea" style="display:none">
+<input id="answer" autocomplete="off">
+<button onclick="submitAnswer()">回答</button>
+</div>
 </div>
 
-<input id="answer" type="text" placeholder="逆から入力">
-
-<div class="info">
-    <div>レベル: <span id="level">3</span></div>
-    <div>スコア: <span id="score">0</span></div>
-    <div>連続正解: <span id="combo">0</span></div>
+<div class="card">
+<h2>現在の成績</h2>
+<div>桁数: <span id="digits">6</span></div>
+<div>正答数: <span id="correct">0</span></div>
+<div>誤答数: <span id="wrong">0</span></div>
+<div>平均回答時間: <span id="avg">0</span>秒</div>
 </div>
 
-<div class="history">
-    <h3>今日の記録</h3>
-    <div id="historyList"></div>
+<div class="card">
+<h2>🏆 ベスト記録</h2>
+<div id="best"></div>
 </div>
 
+<div class="card">
+<h2>📋 履歴</h2>
+<div id="history"></div>
 </div>
 
 <script>
 
-let currentNumber = "";
-let level = 3;
-let score = 0;
-let combo = 0;
-let hidden = false;
+let digit=6;
+let questionCount=0;
+let missAtLevel=0;
 
-const numberDiv = document.getElementById("number");
+let current="";
+let startTime=0;
 
-function randomDigits(length){
+let correct=0;
+let wrong=0;
 
-    let s = "";
+let answerTimes=[];
 
-    for(let i=0;i<length;i++){
-        s += Math.floor(Math.random()*10);
-    }
-
-    return s;
+function randDigits(n){
+let s="";
+for(let i=0;i<n;i++){
+s+=Math.floor(Math.random()*10);
+}
+return s;
 }
 
-function startGame(){
-
-    currentNumber = randomDigits(level);
-
-    numberDiv.textContent = currentNumber;
-
-    hidden = false;
-
-    document.getElementById("answer").value = "";
-
+function startTest(){
+nextQuestion();
 }
 
-function showNumber(){
+function nextQuestion(){
 
-    if(currentNumber==="") return;
+current=randDigits(digit);
 
-    if(!hidden){
+document.getElementById("digits").textContent=digit;
 
-        numberDiv.textContent = "● ● ● ●";
-        hidden = true;
+document.getElementById("answerArea").style.display="none";
+document.getElementById("status").textContent=
+digit+"桁を覚えてください";
 
-    }else{
+document.getElementById("number").textContent=current;
 
-        numberDiv.textContent = currentNumber;
-        hidden = false;
-    }
+setTimeout(()=>{
 
-}
+document.getElementById("number").textContent="";
 
-function checkAnswer(){
+document.getElementById("answerArea").style.display="block";
 
-    const ans = document.getElementById("answer").value.trim();
+document.getElementById("answer").value="";
+document.getElementById("answer").focus();
 
-    const reversed = currentNumber.split("").reverse().join("");
+startTime=Date.now();
 
-    let result = "";
-
-    if(ans === reversed){
-
-        score += level * 10;
-        combo++;
-
-        if(combo % 2 === 0){
-            level++;
-        }
-
-        result = "⭕ 正解";
-
-        addHistory(true);
-
-    }else{
-
-        combo = 0;
-
-        if(level > 3){
-            level--;
-        }
-
-        result = `❌ 不正解 正解: ${reversed}`;
-
-        addHistory(false);
-
-    }
-
-    numberDiv.innerHTML = result;
-
-    updateUI();
+},3000);
 
 }
 
-function updateUI(){
+function submitAnswer(){
 
-    document.getElementById("level").textContent = level;
-    document.getElementById("score").textContent = score;
-    document.getElementById("combo").textContent = combo;
+let ans=document.getElementById("answer").value.trim();
 
-}
+let time=(Date.now()-startTime)/1000;
 
-function todayKey(){
+answerTimes.push(time);
 
-    const d = new Date();
+if(ans===current){
 
-    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+correct++;
 
-}
+questionCount++;
 
-function addHistory(correct){
+if(questionCount>=2){
 
-    let data = JSON.parse(localStorage.getItem("reverseMemoryGame")) || {};
-
-    const key = todayKey();
-
-    if(!data[key]){
-
-        data[key] = {
-            plays:0,
-            correct:0,
-            score:0
-        };
-
-    }
-
-    data[key].plays++;
-
-    if(correct){
-        data[key].correct++;
-    }
-
-    data[key].score = score;
-
-    localStorage.setItem("reverseMemoryGame",JSON.stringify(data));
-
-    renderHistory();
+digit++;
+questionCount=0;
+missAtLevel=0;
 
 }
 
-function renderHistory(){
+document.getElementById("status").innerHTML=
+"<span class='good'>正解！</span>";
 
-    const historyDiv = document.getElementById("historyList");
+}else{
 
-    let data = JSON.parse(localStorage.getItem("reverseMemoryGame")) || {};
+wrong++;
+missAtLevel++;
 
-    let html = "";
+document.getElementById("status").innerHTML=
+"<span class='bad'>不正解</span>";
 
-    const keys = Object.keys(data).reverse();
+if(missAtLevel>=2){
 
-    if(keys.length===0){
-
-        html = "まだ記録がありません";
-
-    }else{
-
-        keys.forEach(k=>{
-
-            const d = data[k];
-
-            html += `
-            <div style="margin-bottom:10px;">
-                <strong>${k}</strong><br>
-                プレイ: ${d.plays} 回<br>
-                正解: ${d.correct} 回<br>
-                スコア: ${d.score}
-            </div>
-            <hr>
-            `;
-
-        });
-
-    }
-
-    historyDiv.innerHTML = html;
+finishTest();
+return;
+}
 
 }
 
-renderHistory();
+updateStats();
+
+setTimeout(nextQuestion,1200);
+
+}
+
+function updateStats(){
+
+document.getElementById("correct").textContent=correct;
+document.getElementById("wrong").textContent=wrong;
+
+let avg=0;
+
+if(answerTimes.length){
+avg=
+answerTimes.reduce((a,b)=>a+b,0)
+/answerTimes.length;
+}
+
+document.getElementById("avg").textContent=
+avg.toFixed(2);
+
+}
+
+function rank(d){
+
+if(d>=12)return "S";
+if(d>=10)return "A";
+if(d>=8)return "B";
+if(d>=6)return "C";
+return "D";
+
+}
+
+function finishTest(){
+
+let avg=
+answerTimes.reduce((a,b)=>a+b,0)
+/answerTimes.length;
+
+let result={
+date:new Date().toLocaleString(),
+maxDigit:digit,
+correct,
+wrong,
+avg:avg.toFixed(2),
+rank:rank(digit)
+};
+
+let history=
+JSON.parse(localStorage.getItem("memoryHistory")||"[]");
+
+history.unshift(result);
+
+localStorage.setItem(
+"memoryHistory",
+JSON.stringify(history)
+);
+
+document.getElementById("status").innerHTML=
+"終了！ ランク "+result.rank+
+" / 最高桁数 "+result.maxDigit;
+
+document.getElementById("answerArea").style.display="none";
+
+loadHistory();
+
+}
+
+function loadHistory(){
+
+let history=
+JSON.parse(localStorage.getItem("memoryHistory")||"[]");
+
+if(history.length===0)return;
+
+let best=
+history.reduce((a,b)=>
+a.maxDigit>b.maxDigit?a:b);
+
+document.getElementById("best").innerHTML=
+`
+最高桁数: ${best.maxDigit}<br>
+ランク: ${best.rank}<br>
+平均回答時間: ${best.avg}秒
+`;
+
+let html="";
+
+history.slice(0,10).forEach(h=>{
+
+html+=`
+<hr>
+${h.date}<br>
+最高桁数: ${h.maxDigit}<br>
+ランク: ${h.rank}<br>
+正答: ${h.correct}<br>
+誤答: ${h.wrong}<br>
+平均回答時間: ${h.avg}秒
+`;
+
+});
+
+document.getElementById("history").innerHTML=html;
+
+}
+
+loadHistory();
 
 </script>
 
