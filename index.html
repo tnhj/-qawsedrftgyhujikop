@@ -1,286 +1,271 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WAIS風 記憶力テスト</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字順唱ゲーム</title>
 
 <style>
 body{
-font-family:sans-serif;
-background:#111;
-color:white;
-max-width:800px;
-margin:auto;
-padding:20px;
+    font-family: sans-serif;
+    text-align:center;
+    background:#f5f5f5;
+    padding:20px;
 }
-.card{
-background:#1e1e1e;
-padding:20px;
-border-radius:12px;
-margin-bottom:15px;
-}
-button{
-padding:10px 20px;
-font-size:16px;
-cursor:pointer;
-}
-input{
-width:100%;
-padding:10px;
-font-size:20px;
-margin-top:10px;
-}
-#number{
-font-size:42px;
-text-align:center;
-letter-spacing:6px;
-min-height:60px;
-}
-.good{color:#4caf50}
-.bad{color:#ff5252}
-</style>
 
+.container{
+    max-width:700px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+#numberDisplay{
+    font-size:48px;
+    font-weight:bold;
+    margin:30px 0;
+    letter-spacing:8px;
+    min-height:70px;
+}
+
+input{
+    font-size:24px;
+    padding:10px;
+    width:250px;
+    text-align:center;
+}
+
+button{
+    font-size:18px;
+    padding:10px 20px;
+    margin-top:15px;
+    cursor:pointer;
+}
+
+.correct{
+    color:green;
+    font-weight:bold;
+}
+
+.incorrect{
+    color:red;
+    font-weight:bold;
+}
+
+table{
+    margin:auto;
+    border-collapse:collapse;
+    margin-top:20px;
+    width:100%;
+}
+
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+}
+</style>
 </head>
 <body>
 
-<h1>🧠 WAIS風 記憶力テスト</h1>
+<div class="container">
 
-<div class="card">
-<div id="status">STARTを押してください</div>
-<div id="number"></div>
+<h1>数字順唱ゲーム</h1>
 
-<button onclick="startTest()">START</button>
+<p>7桁の数字が3秒間表示されます。表示順に入力してください。</p>
 
-<div id="answerArea" style="display:none">
-<input id="answer" autocomplete="off">
-<button onclick="submitAnswer()">回答</button>
-</div>
-</div>
+<h2 id="questionInfo">問題 1 / 10</h2>
 
-<div class="card">
-<h2>現在の成績</h2>
-<div>桁数: <span id="digits">6</span></div>
-<div>正答数: <span id="correct">0</span></div>
-<div>誤答数: <span id="wrong">0</span></div>
-<div>平均回答時間: <span id="avg">0</span>秒</div>
+<div id="numberDisplay"></div>
+
+<div id="answerArea" style="display:none;">
+    <input type="text" id="answerInput" maxlength="7">
+    <br>
+    <button onclick="submitAnswer()">回答</button>
 </div>
 
-<div class="card">
-<h2>🏆 ベスト記録</h2>
-<div id="best"></div>
-</div>
+<div id="feedback"></div>
 
-<div class="card">
-<h2>📋 履歴</h2>
-<div id="history"></div>
+<button id="startBtn" onclick="startGame()">開始</button>
+
+<div id="result"></div>
+
 </div>
 
 <script>
 
-let digit=6;
-let questionCount=0;
-let missAtLevel=0;
+const TOTAL_QUESTIONS = 10;
+const DIGITS = 7;
+const DISPLAY_TIME = 3000;
 
-let current="";
-let startTime=0;
+let currentQuestion = 0;
+let currentNumber = "";
+let correctCount = 0;
 
-let correct=0;
-let wrong=0;
+let startTime = 0;
+let totalAnswerTime = 0;
 
-let answerTimes=[];
+let history = [];
 
-function randDigits(n){
-let s="";
-for(let i=0;i<n;i++){
-s+=Math.floor(Math.random()*10);
+function generateNumber(){
+    let num = "";
+    for(let i=0;i<DIGITS;i++){
+        num += Math.floor(Math.random()*10);
+    }
+    return num;
 }
-return s;
-}
 
-function startTest(){
-nextQuestion();
+function startGame(){
+
+    document.getElementById("startBtn").style.display="none";
+    nextQuestion();
 }
 
 function nextQuestion(){
 
-current=randDigits(digit);
+    document.getElementById("feedback").innerHTML="";
+    document.getElementById("answerArea").style.display="none";
+    document.getElementById("answerInput").value="";
 
-document.getElementById("digits").textContent=digit;
+    if(currentQuestion >= TOTAL_QUESTIONS){
+        finishGame();
+        return;
+    }
 
-document.getElementById("answerArea").style.display="none";
-document.getElementById("status").textContent=
-digit+"桁を覚えてください";
+    document.getElementById("questionInfo").textContent =
+        `問題 ${currentQuestion+1} / ${TOTAL_QUESTIONS}`;
 
-document.getElementById("number").textContent=current;
+    currentNumber = generateNumber();
 
-setTimeout(()=>{
+    document.getElementById("numberDisplay").textContent =
+        currentNumber.split("").join(" ");
 
-document.getElementById("number").textContent="";
+    setTimeout(() => {
 
-document.getElementById("answerArea").style.display="block";
+        document.getElementById("numberDisplay").textContent = "● ● ● ● ● ● ●";
 
-document.getElementById("answer").value="";
-document.getElementById("answer").focus();
+        document.getElementById("answerArea").style.display="block";
 
-startTime=Date.now();
+        startTime = performance.now();
 
-},3000);
+        document.getElementById("answerInput").focus();
 
+    }, DISPLAY_TIME);
 }
 
 function submitAnswer(){
 
-let ans=document.getElementById("answer").value.trim();
+    const answer =
+        document.getElementById("answerInput").value.trim();
 
-let time=(Date.now()-startTime)/1000;
+    if(answer.length !== DIGITS){
+        alert("7桁入力してください。");
+        return;
+    }
 
-answerTimes.push(time);
+    const elapsed =
+        (performance.now() - startTime) / 1000;
 
-if(ans===current){
+    totalAnswerTime += elapsed;
 
-correct++;
+    let feedback = "";
 
-questionCount++;
+    if(answer === currentNumber){
 
-if(questionCount>=2){
+        correctCount++;
 
-digit++;
-questionCount=0;
-missAtLevel=0;
+        feedback =
+        `<p class="correct">
+        正解！<br>
+        解答時間: ${elapsed.toFixed(2)} 秒
+        </p>`;
 
+        history.push({
+            q: currentQuestion + 1,
+            result: "正解",
+            answerTime: elapsed.toFixed(2)
+        });
+
+    }else{
+
+        feedback =
+        `<p class="incorrect">
+        不正解<br>
+        あなたの回答: ${answer}<br>
+        正答: ${currentNumber}<br>
+        解答時間: ${elapsed.toFixed(2)} 秒
+        </p>`;
+
+        history.push({
+            q: currentQuestion + 1,
+            result: "不正解",
+            answerTime: elapsed.toFixed(2)
+        });
+    }
+
+    document.getElementById("feedback").innerHTML = feedback;
+
+    currentQuestion++;
+
+    setTimeout(nextQuestion, 2500);
 }
 
-document.getElementById("status").innerHTML=
-"<span class='good'>正解！</span>";
+function finishGame(){
 
-}else{
+    document.getElementById("questionInfo").textContent =
+        "テスト終了";
 
-wrong++;
-missAtLevel++;
+    document.getElementById("numberDisplay").style.display="none";
+    document.getElementById("answerArea").style.display="none";
+    document.getElementById("feedback").style.display="none";
 
-document.getElementById("status").innerHTML=
-"<span class='bad'>不正解</span>";
+    const accuracy =
+        (correctCount / TOTAL_QUESTIONS * 100).toFixed(1);
 
-if(missAtLevel>=2){
+    const averageTime =
+        (totalAnswerTime / TOTAL_QUESTIONS).toFixed(2);
 
-finishTest();
-return;
+    let table = `
+    <table>
+        <tr>
+            <th>問題</th>
+            <th>結果</th>
+            <th>解答時間(秒)</th>
+        </tr>
+    `;
+
+    history.forEach(item=>{
+        table += `
+        <tr>
+            <td>${item.q}</td>
+            <td>${item.result}</td>
+            <td>${item.answerTime}</td>
+        </tr>
+        `;
+    });
+
+    table += "</table>";
+
+    document.getElementById("result").innerHTML = `
+        <h2>結果</h2>
+        <p><strong>正解数：</strong>${correctCount} / ${TOTAL_QUESTIONS}</p>
+        <p><strong>正答率：</strong>${accuracy}%</p>
+        <p><strong>平均解答時間：</strong>${averageTime}秒</p>
+        ${table}
+    `;
 }
 
-}
-
-updateStats();
-
-setTimeout(nextQuestion,1200);
-
-}
-
-function updateStats(){
-
-document.getElementById("correct").textContent=correct;
-document.getElementById("wrong").textContent=wrong;
-
-let avg=0;
-
-if(answerTimes.length){
-avg=
-answerTimes.reduce((a,b)=>a+b,0)
-/answerTimes.length;
-}
-
-document.getElementById("avg").textContent=
-avg.toFixed(2);
-
-}
-
-function rank(d){
-
-if(d>=12)return "S";
-if(d>=10)return "A";
-if(d>=8)return "B";
-if(d>=6)return "C";
-return "D";
-
-}
-
-function finishTest(){
-
-let avg=
-answerTimes.reduce((a,b)=>a+b,0)
-/answerTimes.length;
-
-let result={
-date:new Date().toLocaleString(),
-maxDigit:digit,
-correct,
-wrong,
-avg:avg.toFixed(2),
-rank:rank(digit)
-};
-
-let history=
-JSON.parse(localStorage.getItem("memoryHistory")||"[]");
-
-history.unshift(result);
-
-localStorage.setItem(
-"memoryHistory",
-JSON.stringify(history)
-);
-
-document.getElementById("status").innerHTML=
-"終了！ ランク "+result.rank+
-" / 最高桁数 "+result.maxDigit;
-
-document.getElementById("answerArea").style.display="none";
-
-loadHistory();
-
-}
-
-function loadHistory(){
-
-let history=
-JSON.parse(localStorage.getItem("memoryHistory")||"[]");
-
-if(history.length===0)return;
-
-let best=
-history.reduce((a,b)=>
-a.maxDigit>b.maxDigit?a:b);
-
-document.getElementById("best").innerHTML=
-`
-最高桁数: ${best.maxDigit}<br>
-ランク: ${best.rank}<br>
-平均回答時間: ${best.avg}秒
-`;
-
-let html="";
-
-history.slice(0,10).forEach(h=>{
-
-html+=`
-<hr>
-${h.date}<br>
-最高桁数: ${h.maxDigit}<br>
-ランク: ${h.rank}<br>
-正答: ${h.correct}<br>
-誤答: ${h.wrong}<br>
-平均回答時間: ${h.avg}秒
-`;
-
+document.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){
+        if(document.getElementById("answerArea").style.display==="block"){
+            submitAnswer();
+        }
+    }
 });
-
-document.getElementById("history").innerHTML=html;
-
-}
-
-loadHistory();
 
 </script>
 
 </body>
 </html>
+
