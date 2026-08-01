@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7桁数値記憶テスト (順唱形式)</title>
+    <title>7桁数値記憶テスト (モノクロ・BGM対応版)</title>
     <style>
         :root {
-            --primary-color: #4a90e2;
-            --success-color: #2ecc71;
-            --danger-color: #e74c3c;
+            --primary-color: #2c3e50;
+            --success-color: #27ae60;
+            --danger-color: #c0392b;
             --dark-color: #2c3e50;
             --light-color: #f5f7fa;
         }
@@ -41,6 +41,60 @@
             color: var(--primary-color);
         }
 
+        /* 🎵 BGMコントロールパネル */
+        .bgm-control-panel {
+            background: #f0f4f8;
+            border: 1px solid #d0dbe5;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bgm-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .bgm-control-panel label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .bgm-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select.bgm-select {
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .volume-slider {
+            width: 80px;
+            cursor: pointer;
+        }
+
+        .file-input-wrapper {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .info-panel, .game-panel, .result-panel, .history-panel {
             display: none;
             margin-bottom: 20px;
@@ -50,7 +104,25 @@
             display: block;
         }
 
-        button {
+        .btn-start {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            background-color: #34495e;
+            width: 100%;
+            transition: opacity 0.2s;
+            margin-top: 15px;
+        }
+
+        .btn-start:hover {
+            opacity: 0.9;
+        }
+
+        button.general-btn {
             background-color: var(--primary-color);
             color: white;
             border: none;
@@ -59,17 +131,22 @@
             border-radius: 6px;
             cursor: pointer;
             width: 100%;
-            transition: background 0.2s;
+            margin-bottom: 10px;
         }
-
-        button:hover {
-            background-color: #357abd;
+        
+        button.csv-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: bold;
         }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+        button.csv-btn:hover { background-color: #219653; }
 
         #status {
             font-size: 18px;
@@ -88,6 +165,7 @@
             margin: 20px 0;
             background: #eef2f7;
             border-radius: 8px;
+            color: #000;
         }
 
         .input-group {
@@ -119,15 +197,8 @@
             font-size: 18px;
         }
 
-        .feedback.correct {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .feedback.incorrect {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
+        .feedback.correct { background-color: #d4edda; color: #155724; }
+        .feedback.incorrect { background-color: #f8d7da; color: #721c24; }
 
         table {
             width: 100%;
@@ -136,15 +207,8 @@
             font-size: 14px;
         }
 
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #f2f2f2; }
 
         .text-success { color: var(--success-color); font-weight: bold; }
         .text-danger { color: var(--danger-color); font-weight: bold; }
@@ -156,31 +220,46 @@
             margin-bottom: 20px;
         }
 
-        .summary-box p {
-            margin: 5px 0;
-            font-size: 16px;
-        }
-
-        .rules-list {
-            padding-left: 20px;
-            line-height: 1.6;
-        }
+        .rules-list { padding-left: 20px; line-height: 1.6; }
+        .error-msg { color: #c0392b; font-size: 12px; margin-top: 4px; display: none; }
     </style>
 </head>
 <body>
 
+<audio id="bgm-player" loop></audio>
+
 <div class="container">
-    <h1>🧠 7桁数値記憶テスト (順唱)</h1>
+    <h1 id="game-title">🧠 7桁数値記憶テスト (モノクロ版)</h1>
+
+    <div class="bgm-control-panel">
+        <div class="bgm-row">
+            <label for="bgm-select">🎵 BGM選択:</label>
+            <div class="bgm-controls">
+                <select id="bgm-select" class="bgm-select" onchange="changeBGM(this.value)">
+                    <option value="none">無し</option>
+                    <option value="classic">モーツァルト 交響曲第25番</option>
+                    <option value="pop">Candy Crush (OtoLogic)</option>
+                </select>
+                <span style="font-size:12px; font-weight:bold; color:#666;">音量:</span>
+                <input type="range" id="bgm-volume" class="volume-slider" min="0" max="1" step="0.05" value="0.3" oninput="changeVolume(this.value)">
+            </div>
+        </div>
+        <div class="file-input-wrapper">
+            <span>※流れない場合は直接ファイルを選択:</span>
+            <input type="file" id="manual-file" accept="audio/*" onchange="loadManualFile(this)">
+        </div>
+        <div id="bgm-error" class="error-msg">⚠️ 音声ファイルが見つからないか、読み込めませんでした。ファイル名や保存場所をご確認ください。</div>
+    </div>
 
     <div id="info-panel" class="info-panel active">
         <h3>🎮 ルール</h3>
         <ul class="rules-list">
-            <li>全10問の記憶力テストです。</li>
-            <li>毎回ランダムな<b>7桁の数字</b>が<b>3秒間</b>表示されます。</li>
-            <li>数字が消えたら、そのまま同じ数字を入力してください。</li>
-            <li>Enterキーまたは回答ボタンで判定します。</li>
+            <li>全10問の記憶力テストです（数字7桁、表示時間3秒）。</li>
+            <li>文字色はモノクロ（黒〜グレー）でランダムに変化します。</li>
+            <li>BGMを選択して集中力を測定できます。</li>
         </ul>
-        <button id="start-btn" onclick="startGame()">テスト開始</button>
+        
+        <button class="btn-start" onclick="startGame()">⚪⚫ テストを開始する</button>
     </div>
 
     <div id="game-panel" class="game-panel">
@@ -189,7 +268,7 @@
         
         <div class="input-group">
             <input type="text" id="answer-input" maxlength="7" autocomplete="off" placeholder="数字を入力" disabled>
-            <button id="submit-btn" onclick="submitAnswer()" style="width: auto;" disabled>回答</button>
+            <button id="submit-btn" onclick="submitAnswer()" style="width: auto; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; padding: 0 20px;" disabled>回答</button>
         </div>
 
         <div id="feedback-area"></div>
@@ -198,37 +277,38 @@
     <div id="result-panel" class="result-panel">
         <h2>📊 テスト結果</h2>
         <div class="summary-box">
-            <p>総合評価: <span id="res-score" style="font-weight:bold; font-size:18px;"></span></p>
-            <p>正答数: <span id="res-correct"></span> / 10</p>
-            <p>誤答数: <span id="res-incorrect"></span> / 10</p>
-            <p>正答率: <span id="res-rate"></span>%</p>
-            <p>平均回答時間: <span id="res-avg-time"></span>秒</p>
+            <p>今回正答数: <span id="res-correct"></span> / 10 (<span id="res-rate"></span>%)</p>
+            <p>今回平均時間: <span id="res-avg-time"></span>秒</p>
         </div>
 
-        <h3>問題ごとの詳細</h3>
-        <table id="detail-table">
-            <thead>
-                <tr>
-                    <th>問</th>
-                    <th>合否</th>
-                    <th>正導</th>
-                    <th>あなたの回答</th>
-                    <th>時間</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <button onclick="resetToHome()" style="margin-top:20px;">ホームに戻る</button>
+        <button class="csv-btn" onclick="downloadCSV()">💾 履歴をCSVでダウンロード</button>
+
+        <h3>今回の問題ごとの詳細データ</h3>
+        <div style="overflow-x: auto;">
+            <table id="detail-table">
+                <thead>
+                    <tr>
+                        <th>問</th>
+                        <th>合否</th>
+                        <th>明度</th>
+                        <th>正答</th>
+                        <th>あなたの回答</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <button class="general-btn" onclick="resetToHome()" style="margin-top:20px;">トップに戻る</button>
     </div>
 
     <div id="history-panel" class="history-panel active" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
-        <h3>💾 本日の記録 (LocalStorage)</h3>
+        <h3>💾 本日の実施履歴</h3>
         <table id="history-table">
             <thead>
                 <tr>
-                    <th>日付</th>
-                    <th>実施回数</th>
-                    <th>平均正答率</th>
+                    <th>回数</th>
+                    <th>正答率</th>
                     <th>平均回答時間</th>
                 </tr>
             </thead>
@@ -242,46 +322,103 @@
     let currentQuestion = 0;
     let targetNumber = "";
     let startTime = 0;
-    let results = []; // 各問の結果を格納 { num, isCorrect, target, answer, time }
+    let currentMonoLight = 0; 
+    let results = []; 
 
-    // DOM要素
+    // -------------------------------------------------------------
+    // 🎵 MP3ファイル再生処理
+    // -------------------------------------------------------------
+    const bgmPlayer = document.getElementById('bgm-player');
+    const bgmError = document.getElementById('bgm-error');
+    
+    // MP3ファイル名の指定
+    const BGM_FILES = {
+        classic: "Mozart-Symphony-No25-1st.mp3",
+        pop: "Candy_Crush.mp3"
+    };
+
+    function changeBGM(type) {
+        bgmError.style.display = "none";
+
+        if (type === 'none') {
+            bgmPlayer.pause();
+            bgmPlayer.currentTime = 0;
+            return;
+        }
+
+        const filePath = BGM_FILES[type];
+        if (filePath) {
+            bgmPlayer.src = filePath;
+            bgmPlayer.volume = parseFloat(document.getElementById('bgm-volume').value);
+            
+            const playPromise = bgmPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(err => {
+                    console.error("BGM再生エラー:", err);
+                    bgmError.style.display = "block";
+                });
+            }
+        }
+    }
+
+    // ファイル選択ボタンから手動で音源を選択した場合の処理
+    function loadManualFile(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const fileURL = URL.createObjectURL(file);
+            bgmError.style.display = "none";
+            
+            bgmPlayer.src = fileURL;
+            bgmPlayer.volume = parseFloat(document.getElementById('bgm-volume').value);
+            bgmPlayer.play().catch(err => {
+                console.error("手動ファイル再生エラー:", err);
+            });
+        }
+    }
+
+    function changeVolume(val) {
+        if (bgmPlayer) {
+            bgmPlayer.volume = parseFloat(val);
+        }
+    }
+
+    // -------------------------------------------------------------
+    // ゲームロジック
+    // -------------------------------------------------------------
     const infoPanel = document.getElementById('info-panel');
     const gamePanel = document.getElementById('game-panel');
     const resultPanel = document.getElementById('result-panel');
-    const startBtn = document.getElementById('start-btn');
     const statusText = document.getElementById('status');
     const displayArea = document.getElementById('display-area');
     const answerInput = document.getElementById('answer-input');
     const submitBtn = document.getElementById('submit-btn');
     const feedbackArea = document.getElementById('feedback-area');
 
-    // 起動時に履歴を表示
     window.onload = function() {
         displayHistory();
     };
 
-    // Enterキーでの回答送信に対応
     answerInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !submitBtn.disabled) {
             submitAnswer();
         }
     });
 
-    // ゲーム開始
     function startGame() {
-        // 仕様: テスト開始後はSTARTボタン無効、再スタート不可
-        startBtn.disabled = true;
         infoPanel.classList.remove('active');
         resultPanel.classList.remove('active');
         gamePanel.classList.add('active');
-        
         currentQuestion = 0;
         results = [];
-        
+
+        const selectedBGM = document.getElementById('bgm-select').value;
+        if (selectedBGM !== 'none') {
+            changeBGM(selectedBGM);
+        }
+
         nextQuestion();
     }
 
-    // 次の問題へ
     function nextQuestion() {
         currentQuestion++;
         if (currentQuestion > TOTAL_QUESTIONS) {
@@ -289,37 +426,35 @@
             return;
         }
 
-        // 状態リセット
         statusText.innerText = `問題 ${currentQuestion} / ${TOTAL_QUESTIONS}`;
         feedbackArea.innerHTML = "";
         answerInput.value = "";
         answerInput.disabled = true;
         submitBtn.disabled = true;
 
-        // 7桁のランダムな数字を生成
+        currentMonoLight = (Math.random() * 0.3 + 0.15).toFixed(2); 
+        displayArea.style.color = `oklch(${currentMonoLight} 0 0)`;
+
         targetNumber = Math.floor(1000000 + Math.random() * 9000000).toString();
         displayArea.innerText = targetNumber;
 
-        // 3秒後に数字を消す
         setTimeout(() => {
             displayArea.innerText = "*******";
+            displayArea.style.color = "var(--dark-color)"; 
             answerInput.disabled = false;
             submitBtn.disabled = false;
             answerInput.focus();
-            startTime = performance.now(); // 計測開始
+            startTime = performance.now();
         }, 3000);
     }
 
-    // 回答送信
     function submitAnswer() {
         const endTime = performance.now();
-        const answerTime = ((endTime - startTime) / 1000).toFixed(2); // 秒単位に変形
+        const answerTime = ((endTime - startTime) / 1000).toFixed(2);
         const userAnswer = answerInput.value.trim();
 
-        // ロック
         answerInput.disabled = true;
         submitBtn.disabled = true;
-
         const isCorrect = (userAnswer === targetNumber);
         
         results.push({
@@ -327,43 +462,34 @@
             isCorrect: isCorrect,
             target: targetNumber,
             answer: userAnswer || "未入力",
-            time: parseFloat(answerTime)
+            time: parseFloat(answerTime),
+            lightness: currentMonoLight
         });
 
-        // 不正解時の即時フィードバック仕様
         if (!isCorrect) {
             feedbackArea.className = "feedback incorrect";
-            feedbackArea.innerHTML = `❌ 不正解<br><span style="font-size:14px;">正答: ${targetNumber}<br>回答: ${userAnswer || "なし"}</span>`;
+            feedbackArea.innerHTML = `❌ 不正解<br><span style="font-size:14px;">正答: ${targetNumber}</span>`;
         } else {
             feedbackArea.className = "feedback correct";
             feedbackArea.innerHTML = `○ 正解！`;
         }
 
-        // 2秒後に次の問題、または結果表示へ
-        setTimeout(() => {
-            nextQuestion();
-        }, 2000);
+        setTimeout(() => { nextQuestion(); }, 1500);
     }
 
-    // ゲーム終了・結果表示
     function endGame() {
         gamePanel.classList.remove('active');
         resultPanel.classList.add('active');
 
         const correctCount = results.filter(r => r.isCorrect).length;
-        const incorrectCount = TOTAL_QUESTIONS - correctCount;
         const successRate = (correctCount / TOTAL_QUESTIONS) * 100;
         const totalTime = results.reduce((sum, r) => sum + r.time, 0);
         const avgTime = (totalTime / TOTAL_QUESTIONS).toFixed(2);
 
-        // 結果書き込み
-        document.getElementById('res-score').innerText = successRate === 100 ? "完璧です！🧠" : successRate >= 70 ? "素晴らしい記憶力です！" : "ナイスチャレンジ！";
         document.getElementById('res-correct').innerText = correctCount;
-        document.getElementById('res-incorrect').innerText = incorrectCount;
         document.getElementById('res-rate').innerText = successRate;
         document.getElementById('res-avg-time').innerText = avgTime;
 
-        // 詳細テーブル生成
         const tbody = document.querySelector('#detail-table tbody');
         tbody.innerHTML = "";
         results.forEach(r => {
@@ -371,6 +497,7 @@
             tr.innerHTML = `
                 <td>${r.num}</td>
                 <td class="${r.isCorrect ? 'text-success' : 'text-danger'}">${r.isCorrect ? '○' : '×'}</td>
+                <td>明度:${r.lightness}</td>
                 <td>${r.target}</td>
                 <td class="${r.isCorrect ? '' : 'text-danger'}">${r.answer}</td>
                 <td>${r.time}秒</td>
@@ -378,61 +505,74 @@
             tbody.appendChild(tr);
         });
 
-        // LocalStorageに保存
         saveToLocalStorage(successRate, parseFloat(avgTime));
     }
 
-    // LocalStorage保存処理
     function saveToLocalStorage(rate, avgTime) {
         const today = new Date().toLocaleDateString();
-        let history = JSON.parse(localStorage.getItem('memory_test_history')) || {};
+        let history = JSON.parse(localStorage.getItem('memory_test_mono_history')) || {};
 
-        if (!history[today]) {
-            history[today] = { rates: [], times: [] };
-        }
+        if (!history[today]) { history[today] = { rates: [], times: [] }; }
 
         history[today].rates.push(rate);
         history[today].times.push(avgTime);
 
-        localStorage.setItem('memory_test_history', JSON.stringify(history));
+        localStorage.setItem('memory_test_mono_history', JSON.stringify(history));
         displayHistory();
     }
 
-    // 履歴表示処理
+    function downloadCSV() {
+        const history = JSON.parse(localStorage.getItem('memory_test_mono_history')) || {};
+        let csvContent = "日付,試行回数,正答率(%),平均回答時間(秒)\n";
+
+        Object.keys(history).sort().forEach(date => {
+            const rates = history[date].rates;
+            const times = history[date].times;
+            for(let i = 0; i < rates.length; i++) {
+                csvContent += `"${date}",${i+1},${rates[i]},${times[i]}\n`;
+            }
+        });
+
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const blob = new Blob([bom, csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `memory_test_mono_history.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
     function displayHistory() {
-        const history = JSON.parse(localStorage.getItem('memory_test_history')) || {};
+        const history = JSON.parse(localStorage.getItem('memory_test_mono_history')) || {};
         const tbody = document.querySelector('#history-table tbody');
         tbody.innerHTML = "";
+        const today = new Date().toLocaleDateString();
+        const todayData = history[today];
 
-        const dates = Object.keys(history).sort().reverse(); // 新しい順
-
-        if (dates.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="color:#999;">本日のデータはまだありません</td></tr>`;
+        if (!todayData || todayData.rates.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="color:#999;">本日のデータはまだありません</td></tr>`;
             return;
         }
 
-        dates.forEach(date => {
-            const data = history[date];
-            const count = data.rates.length;
-            const avgRate = (data.rates.reduce((a, b) => a + b, 0) / count).toFixed(1);
-            const avgTime = (data.times.reduce((a, b) => a + b, 0) / count).toFixed(2);
-
+        for (let i = 0; i < todayData.rates.length; i++) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${date}</td>
-                <td>${count}回</td>
-                <td>${avgRate}%</td>
-                <td>${avgTime}秒</td>
+                <td>第 ${i + 1} 回目</td>
+                <td>${todayData.rates[i]}%</td>
+                <td>${todayData.times[i]}秒</td>
             `;
             tbody.appendChild(tr);
-        });
+        }
     }
 
-    // ホームに戻って再挑戦可能にする
     function resetToHome() {
         resultPanel.classList.remove('active');
         infoPanel.classList.add('active');
-        startBtn.disabled = false; // 再スタートを許可する状態に戻す
     }
 </script>
 
