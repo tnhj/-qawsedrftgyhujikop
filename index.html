@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7桁数値記憶テスト (モノクロ・528Hz版)</title>
+    <title>7桁数値記憶テスト (逆唱・528Hz版)</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -152,7 +152,7 @@
             margin: 20px 0;
             background: #eef2f7;
             border-radius: 8px;
-            color: #2c3e50; /* 固定色 */
+            color: #2c3e50;
         }
 
         .input-group {
@@ -208,12 +208,20 @@
         }
 
         .rules-list { padding-left: 20px; line-height: 1.6; }
+        .badge-reverse {
+            background: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="game-title">🧠 7桁数値記憶テスト</h1>
+    <h1 id="game-title">🔄 7桁数値記憶テスト <span class="badge-reverse">逆唱モード</span></h1>
 
     <!-- 🎵 528Hzコントロールパネル -->
     <div class="sound-control-panel">
@@ -241,13 +249,15 @@
 
     <!-- 1. 説明画面 -->
     <div id="info-panel" class="info-panel active">
-        <h3>🎮 ルール</h3>
+        <h3>🎮 ルール（逆唱テスト）</h3>
         <ul class="rules-list">
             <li>全10問の記憶力テストです（数字7桁、表示時間3秒）。</li>
-            <li>528Hzサウンド（連続音・パルス音）やテンポを設定してテストを開始できます。</li>
+            <li><strong>【重要】表示された数字を「逆から（後ろから順に）」入力してください！</strong></li>
+            <li>（例：画面に「1 2 3 4 5 6 7」と出たら「7654321」と入力）</li>
+            <li>528Hzサウンド（連続音・パルス音）やテンポを設定して集中力を測定できます。</li>
         </ul>
         
-        <button class="btn-start" onclick="startGame()">▶️ テストを開始する</button>
+        <button class="btn-start" onclick="startGame()">🔄 逆唱テストを開始する</button>
     </div>
 
     <!-- 2. ゲーム画面 -->
@@ -256,7 +266,7 @@
         <div id="display-area">---</div>
         
         <div class="input-group">
-            <input type="text" id="answer-input" maxlength="7" autocomplete="off" placeholder="数字を入力" disabled>
+            <input type="text" id="answer-input" maxlength="7" autocomplete="off" placeholder="逆から数字を入力" disabled>
             <button id="submit-btn" onclick="submitAnswer()" style="width: auto; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; padding: 0 20px;" disabled>回答</button>
         </div>
 
@@ -265,7 +275,7 @@
 
     <!-- 3. 結果画面 -->
     <div id="result-panel" class="result-panel">
-        <h2>📊 テスト結果</h2>
+        <h2>📊 テスト結果 (逆唱)</h2>
         <div class="summary-box">
             <p>今回正答数: <span id="res-correct"></span> / 10 (<span id="res-rate"></span>%)</p>
             <p>今回平均時間: <span id="res-avg-time"></span>秒</p>
@@ -280,7 +290,8 @@
                     <tr>
                         <th>問</th>
                         <th>合否</th>
-                        <th>正答</th>
+                        <th>表示数字</th>
+                        <th>正解（逆順）</th>
                         <th>あなたの回答</th>
                         <th>時間</th>
                     </tr>
@@ -310,7 +321,8 @@
 <script>
     const TOTAL_QUESTIONS = 10;
     let currentQuestion = 0;
-    let targetNumber = "";
+    let originalNumber = "";
+    let targetReverseNumber = "";
     let startTime = 0;
     let results = []; 
 
@@ -468,8 +480,12 @@
         submitBtn.disabled = true;
 
         displayArea.style.color = "var(--dark-color)";
-        targetNumber = Math.floor(1000000 + Math.random() * 9000000).toString();
-        displayArea.innerText = targetNumber;
+        
+        // 7桁の数字を生成し、逆順にした文字列を作成
+        originalNumber = Math.floor(1000000 + Math.random() * 9000000).toString();
+        targetReverseNumber = originalNumber.split('').reverse().join('');
+        
+        displayArea.innerText = originalNumber;
 
         setTimeout(() => {
             displayArea.innerText = "*******";
@@ -487,19 +503,20 @@
 
         answerInput.disabled = true;
         submitBtn.disabled = true;
-        const isCorrect = (userAnswer === targetNumber);
+        const isCorrect = (userAnswer === targetReverseNumber);
         
         results.push({
             num: currentQuestion,
             isCorrect: isCorrect,
-            target: targetNumber,
+            original: originalNumber,
+            targetReverse: targetReverseNumber,
             answer: userAnswer || "未入力",
             time: parseFloat(answerTime)
         });
 
         if (!isCorrect) {
             feedbackArea.className = "feedback incorrect";
-            feedbackArea.innerHTML = `❌ 不正解<br><span style="font-size:14px;">正答: ${targetNumber}</span>`;
+            feedbackArea.innerHTML = `❌ 不正解<br><span style="font-size:14px;">正解（逆順）: ${targetReverseNumber} (表示: ${originalNumber})</span>`;
         } else {
             feedbackArea.className = "feedback correct";
             feedbackArea.innerHTML = `○ 正解！`;
@@ -528,7 +545,8 @@
             tr.innerHTML = `
                 <td>${r.num}</td>
                 <td class="${r.isCorrect ? 'text-success' : 'text-danger'}">${r.isCorrect ? '○' : '×'}</td>
-                <td>${r.target}</td>
+                <td>${r.original}</td>
+                <td>${r.targetReverse}</td>
                 <td class="${r.isCorrect ? '' : 'text-danger'}">${r.answer}</td>
                 <td>${r.time}秒</td>
             `;
@@ -540,19 +558,19 @@
 
     function saveToLocalStorage(rate, avgTime) {
         const today = new Date().toLocaleDateString();
-        let history = JSON.parse(localStorage.getItem('memory_test_simple_history')) || {};
+        let history = JSON.parse(localStorage.getItem('memory_test_reverse_history')) || {};
 
         if (!history[today]) { history[today] = { rates: [], times: [] }; }
 
         history[today].rates.push(rate);
         history[today].times.push(avgTime);
 
-        localStorage.setItem('memory_test_simple_history', JSON.stringify(history));
+        localStorage.setItem('memory_test_reverse_history', JSON.stringify(history));
         displayHistory();
     }
 
     function downloadCSV() {
-        const history = JSON.parse(localStorage.getItem('memory_test_simple_history')) || {};
+        const history = JSON.parse(localStorage.getItem('memory_test_reverse_history')) || {};
         let csvContent = "日付,試行回数,正答率(%),平均回答時間(秒)\n";
 
         Object.keys(history).sort().forEach(date => {
@@ -569,7 +587,7 @@
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", `memory_test_history.csv`);
+            link.setAttribute("download", `memory_test_reverse_history.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -578,7 +596,7 @@
     }
 
     function displayHistory() {
-        const history = JSON.parse(localStorage.getItem('memory_test_simple_history')) || {};
+        const history = JSON.parse(localStorage.getItem('memory_test_reverse_history')) || {};
         const tbody = document.querySelector('#history-table tbody');
         tbody.innerHTML = "";
         const today = new Date().toLocaleDateString();
